@@ -14,6 +14,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         flex: 2.5,
+        paddingLeft: 10
     },
     infoContainer: {
         padding: 10,
