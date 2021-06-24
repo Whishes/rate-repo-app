@@ -55,3 +55,20 @@ describe('Form', () => {
     });
   });
 });
+
+const Greeting = ({ name }) => {
+  return (
+    <View>
+      {/* This node is tagged with the testID prop */}
+      <Text testID="greetingText">Hello {name}!</Text>
+    </View>
+  );
+};
+
+describe('Greeting', () => {
+  it('renders a greeting message based on the name prop', () => {
+    const { getByTestId } = render(<Greeting name="Kalle" />);
+
+    expect(getByTestId('greetingText')).toHaveTextContent('Hello Kalle!');
+  });
+});

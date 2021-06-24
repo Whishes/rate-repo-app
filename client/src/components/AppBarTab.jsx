@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
         color: "white",
         fontSize: theme.fontSizes.subheading,
         fontWeight: theme.fontWeights.bold,
-        padding: 10
+        padding: 5
     }
 });
 
