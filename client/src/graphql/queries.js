@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client';
 
 export const GET_REPOSITORIES = gql`
-    query getRepositories($orderBy: AllRepositoriesOrderBy, $orderDirection: OrderDirection, $filter: String) {
-        repositories(orderBy: $orderBy, orderDirection: $orderDirection, searchKeyword: $filter) {
+    query getRepositories($orderBy: AllRepositoriesOrderBy, $orderDirection: OrderDirection, $filter: String, $first: Int, $after: String) {
+        repositories(orderBy: $orderBy, orderDirection: $orderDirection, searchKeyword: $filter, first: $first, after: $after) {
             edges{
                 node{
                     id
@@ -17,15 +17,45 @@ export const GET_REPOSITORIES = gql`
                     ratingAverage
                     stargazersCount
                 }
+                cursor
+            }
+            totalCount
+            pageInfo {
+              endCursor
+              startCursor
+              hasNextPage
             }
         }
     }
 `;
 
 export const CHECK_USER_AUTH = gql`
-    query {
+    query ($includeReviews: Boolean = false) {
         authorizedUser {
             username
+            reviews @include(if: $includeReviews) {
+              edges {
+                node {
+                  id
+                  text
+                  rating
+                  repositoryId
+                  repository {
+                    fullName
+                  }
+                  createdAt
+                  user {
+                    username
+                  }
+                }
+                cursor
+              }
+              pageInfo {
+                endCursor
+                startCursor
+                hasNextPage
+              }
+            }
         }
     }
 `;
@@ -49,10 +79,10 @@ export const REPOSITORY = gql`
 `;
 
 export const REPOSITORY_REVIEWS = gql`
-query singleRepo($id: ID!) {
+query singleRepo($id: ID!, $first: Int, $after: String) {
   repository(id: $id) {
     id
-    reviews {
+    reviews(first: $first, after: $after) {
       edges {
         node {
           id
@@ -64,6 +94,13 @@ query singleRepo($id: ID!) {
             username
           }
         }
+        cursor
+      }
+      totalCount
+      pageInfo {
+        endCursor
+        startCursor
+        hasNextPage
       }
     }
   }

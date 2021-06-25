@@ -7,13 +7,40 @@ const sortCriteriaOptions = {
   lowest_rated: { orderBy: 'RATING_AVERAGE', orderDirection: 'ASC' },
 };
 
-const useRepositories = ({sortCriteria, filter}) => {
-  const { data, loading, refetch } = useQuery(GET_REPOSITORIES, {
+const useRepositories = ({sortCriteria, filter, first}) => {
+  const { data, loading, fetchMore, ...result } = useQuery(GET_REPOSITORIES, {
     fetchPolicy: "cache-and-network",
-    variables: {...sortCriteriaOptions[sortCriteria], filter},
+    variables: {...sortCriteriaOptions[sortCriteria], filter, first},
   });
   //console.log(data)
-  return { repositories: data && data.repositories, loading, refetch};
+  
+  const handleFetchMore = async () => {
+    const canFetchMore = !loading && data?.repositories.pageInfo.hasNextPage;
+
+    if (filter) {
+      return;
+    }
+    if (!canFetchMore) {
+      return;
+    }
+
+    await fetchMore({
+      query: GET_REPOSITORIES,
+      variables: {
+        after: data.repositories.pageInfo.endCursor,
+        first,
+        ...sortCriteriaOptions[sortCriteria],
+        filter
+      }
+    });
+  };
+
+  return {
+    repositories: data?.repositories,
+    fetchMore: handleFetchMore,
+    loading,
+    ...result
+  }
 };
 
 export default useRepositories;

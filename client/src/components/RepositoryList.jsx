@@ -27,7 +27,7 @@ export class RepositoryListContainer extends React.Component {
   };
 
   render() {
-    const { repositories, history} = this.props
+    const { repositories, history, onEndReach} = this.props
     const repositoryNodes = repositories ? repositories.edges.map((edge) => edge.node): [];
 
     return (
@@ -36,6 +36,8 @@ export class RepositoryListContainer extends React.Component {
         ItemSeparatorComponent={ItemSeparator}
         keyExtractor={repository => repository.id}
         ListHeaderComponent={this.renderHeader}
+        onEndReached={onEndReach}
+        onEndReachedThreshold={0.2}
         renderItem={({ item }) => (
           <Pressable onPress={() => history.push(`/${item.id}`)}>
             <View>
@@ -51,10 +53,13 @@ export class RepositoryListContainer extends React.Component {
 const RepositoryList = () => {
   const [sorting, setSortingCriteria] = useState("latest");
   const [filter, setFilter] = useState("");
-  const { repositories } = useRepositories({ sortCriteria: sorting, filter });
+  const { repositories, fetchMore } = useRepositories({ sortCriteria: sorting, filter, first: 5, });
+  const onEndReach = () => {
+    fetchMore();
+  };
   const history = useHistory();
 
-  return <RepositoryListContainer repositories={repositories} setSortingCriteria={setSortingCriteria} sorting={sorting} filter={filter} setFilter={setFilter} history={history}/>;
+  return <RepositoryListContainer repositories={repositories} setSortingCriteria={setSortingCriteria} sorting={sorting} filter={filter} setFilter={setFilter} history={history} onEndReach={onEndReach}/>;
 };
 
 export default RepositoryList;

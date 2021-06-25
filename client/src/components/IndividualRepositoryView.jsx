@@ -1,68 +1,115 @@
-import React, { useState, useEffect} from 'react';
+import React from 'react';
 import Text from "./Text";
 import theme from '../theme';
-import { View, Image, StyleSheet, FlatList, Pressable } from "react-native";
+import { View, Image, StyleSheet, FlatList, Pressable, Alert } from "react-native";
 import { numberConversion, formatDate } from '../utils/helper';
-import { useLazyQuery } from '@apollo/client';
-import { REPOSITORY_REVIEWS } from '../graphql/queries';
-import { useParams } from 'react-router-native';
+import { useHistory, useParams } from 'react-router-native';
 import * as WebBrowser from 'expo-web-browser';
+import useReviews from '../hooks/useReviews';
+import {DELETE_REVIEW} from "../graphql/mutations"
+import { useMutation } from '@apollo/client';
 
 const ItemSeparator = () => <View style={styles.separator} />;
 
-const IndividualRepositoryView = ({ item, singleView=false }) => {
+const IndividualRepositoryView = ({ item, singleView=false}) => {
     const { id } = useParams();
-    const [reviewData, setReviewData] = useState();
-    //console.log(id)
-    const [getReviews, { data, loading }] = useLazyQuery(REPOSITORY_REVIEWS);
-
-
-    useEffect(() => {
-        if (!Object.keys(item).length) {
-            getReviews({ variables: { id } });
-        }
-        if (data && data.repository) {
-            setReviewData(data.repository.reviews.edges.map(edge => edge.node));
-        }
-    }, [data?.repository.reviews]);
+    const { results, fetchMore, refetch} = useReviews({ first: 5, repositoryId: id })
+    
+    const reviewData = results?.reviews.edges.map(edges => edges.node)
+    //console.log(reviewData)
+    const onEndReach = () => {
+        fetchMore();
+    }
 
     return (
         <View>
             <FlatList data={reviewData}
                 keyExtractor={review => review.id}
                 ItemSeparatorComponent={ItemSeparator}
+                onEndReached={onEndReach}
+                onEndReachedThreshold={0.5}
                 renderItem={({item}) => (
-                    <ReviewView review={item} />
+                    <ReviewView review={item} refetch={ refetch }/>
                 )}
                 ListHeaderComponent={() => (
                     <SingleRepository item={item} singleView={singleView}/>
                 )}
             />
-
-            {loading && <Text>... Loading Reviews</Text>}
         </View>
     );
 };
 
-const ReviewView = ({ review }) => {
-    
+export const ReviewView = ({ review, reviewsOnly = false, refetch }) => {
+    const history = useHistory();
+
+    const [deleteReview] = useMutation(DELETE_REVIEW);
+
+    const handleView = () => {
+        history.push(`/${review.repositoryId}`);
+        Alert.alert(`${review.id}`)
+    };
+
+    const handleDelete = () => {
+        Alert.alert('Delete review',
+            'Are you sure you want to delete this review?',
+            [
+            {
+                text: "Cancel", style: "cancel"
+            },
+            {
+                text: "Delete", onPress: async () => {
+                    if (review) {
+                        await deleteReview({ variables: { id: review.id } })
+                        await refetch({includeReviews: true})
+                    }
+                }
+            }
+            ]
+        )
+    }
+
+    const reviewButtons = (
+        <View style={[
+            styles.reviewButtonsContainer,
+            styles.horizontalArrange
+        ]}>
+            <Pressable onPress={handleView} style={[
+                styles.linkButton]}>
+                <View>
+                    <Text style={[styles.buttonText]}>View Repository</Text>
+                </View>
+            </Pressable>
+            <Pressable onPress={handleDelete} style={[
+                styles.linkButton, { backgroundColor: "red" }]}>
+                <View>
+                    <Text style={[styles.buttonText]}>Delete Review</Text>
+                </View>
+            </Pressable>
+        </View>
+    )
+
     //console.log(review)
     return (
-        <View style={{flexDirection: "row", padding: 10}}>
-            <View style={{ flex: 4, alignItems: "center", paddingTop: 10 }}>
-                <View style={{height: 40, width: 40, borderRadius: 20, borderColor: theme.colors.primary, borderStyle: "solid", borderWidth: 2, alignItems: "center", justifyContent: "center"}}>
-                    <Text style={{ fontWeight: "bold", color: theme.colors.primary, fontSize: theme.fontSizes.subheading }}>
-                        {review.rating}
-                    </Text>
+        <View style={{ backgroundColor: "white", padding: 10 }}>
+            <View style={styles.horizontalArrange}>
+                <View style={{ flex: 4, alignItems: "center", paddingTop: 10 }}>
+                    <View style={{height: 40, width: 40, borderRadius: 20, borderColor: theme.colors.primary, borderStyle: "solid", borderWidth: 2, alignItems: "center", justifyContent: "center"}}>
+                        <Text style={{ fontWeight: "bold", color: theme.colors.primary, fontSize: theme.fontSizes.subheading }}>
+                            {review.rating}
+                        </Text>
+                    </View>
                 </View>
-            </View>
-            <View style={{ flex: 20, flexShrink: 1, padding: 5 }}>
-                <View>
-                    <Text style={{fontWeight: "bold", fontSize: theme.fontSizes.subheading}}>{review.user.username}</Text>
+            <View style={{ flex: 15, flexShrink: 1, padding: 5 }}>
+                <View>{
+                    (!reviewsOnly
+                        ? (<><Text style={{ fontWeight: "bold", fontSize: theme.fontSizes.subheading }}>{review.user.username}</Text></>)
+                        : (<><Text style={{ fontWeight: "bold", fontSize: theme.fontSizes.subheading }}>{review.repository.fullName}</Text></>))}
                     <Text style={{ color: theme.colors.textSecondary, fontSize: theme.fontSizes.subheading }}>{formatDate(review.createAt)}</Text>
                 </View>
-                <Text style={{ flexShrink: 1 }}>{review.text}</Text>
+                    <Text style={{ flexShrink: 1 }}>{review.text}</Text>
+                    </View>
             </View>
+            {reviewsOnly && reviewButtons}
         </View>
     )
 }
@@ -175,17 +222,26 @@ const styles = StyleSheet.create({
     separator: {
         height: 10,
     },
-        linkButton: {
+    linkButton: {
         color: "white",
         textAlign: "center",
         borderRadius: 5,
         padding: 10,
         backgroundColor: theme.colors.primary,
-            fontWeight: "bold",
+        fontWeight: "bold",
         margin: 5
     },
     buttonText: {
         color: "white",
-        fontWeight: "bold"
+        fontWeight: "bold",
+        fontSize: 12
     },
+    horizontalArrange: {
+        flexDirection: "row",
+        justifyContent: "space-between"
+    },
+    reviewButtonsContainer: {
+        marginTop: 12
+    },
+
 });

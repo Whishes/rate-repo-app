@@ -7,12 +7,13 @@ import SignIn from './SignIn';
 import SignUp from './SignUp';
 import ReviewForm from "./ReviewForm";
 import RepositoryItem from './RepositoryItem';
+import MyReviews from './MyReviews';
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    backgroundColor: "#e1e4e8",
     flexShrink: 1,
-    backgroundColor: "#e1e4e8"
+    flexGrow: 1,
   },
 });
 
@@ -32,6 +33,9 @@ const Main = () => {
         </Route>
         <Route path="/review">
           <ReviewForm />
+        </Route>
+        <Route path="/myreviews">
+          <MyReviews />
         </Route>
         <Route path="/:id" exact>
           <RepositoryItem singleView />

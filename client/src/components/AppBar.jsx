@@ -27,17 +27,16 @@ const AppBar = () => {
     history.push("/");
   };
 
-
-
   return (
     <View style={styles.container}>
       <ScrollView horizontal>
         <Link to="/" component={AppBarTab}><Text>Repositories</Text></Link>
         {data && data.authorizedUser
-          ? <View>
-              <Link to="review" component={AppBarTab}>Create a review</Link>
+          ? <>
+            <Link to="review" component={AppBarTab}>Create a review</Link>
+            <Link to="myreviews" component={AppBarTab}>My Reviews</Link>
               <AppBarTab onPress={signOut}>Logout</AppBarTab>
-            </View>
+            </>
           : <View>
             <Link to="/signin" component={AppBarTab}><Text>Sign In</Text></Link>
             <Link to="/signup" component={AppBarTab}><Text>Sign Up</Text></Link>
